@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/use-auth';
 import { useTasks } from '@/hooks/use-tasks';
-import { Layout, User, Settings as SettingsIcon } from 'lucide-react';
+import { Layout, User, Settings as SettingsIcon, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CalendarView } from '@/components/dashboard/calendar-view';
 import { TaskList } from '@/components/dashboard/task-list';
@@ -13,6 +13,17 @@ export default function Dashboard() {
   
   const completedTasks = tasks.filter((task) => task.completed).length;
   const upcomingEvents = 3; // Placeholder for demo
+  
+  // Calculate total hours worked from tasks with start and end times
+  const totalHoursWorked = tasks.reduce((total, task) => {
+    if (task.startTime && task.endTime) {
+      const [startHour, startMinute] = task.startTime.split(':').map(Number);
+      const [endHour, endMinute] = task.endTime.split(':').map(Number);
+      const hours = endHour - startHour + (endMinute - startMinute) / 60;
+      return total + (hours > 0 ? hours : 0);
+    }
+    return total;
+  }, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,6 +35,12 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold">Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/about">
+                  <Info className="h-4 w-4 mr-2" />
+                  About Us
+                </Link>
+              </Button>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/profile">
                   <User className="h-4 w-4 mr-2" />
@@ -46,6 +63,7 @@ export default function Dashboard() {
             completedTasks={completedTasks}
             totalTasks={tasks.length}
             upcomingEvents={upcomingEvents}
+            totalHoursWorked={Math.round(totalHoursWorked * 10) / 10}
           />
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

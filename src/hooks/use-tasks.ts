@@ -5,12 +5,14 @@ export interface Task {
   id: number;
   title: string;
   completed: boolean;
+  startTime?: string;
+  endTime?: string;
 }
 
 interface TaskState {
   tasks: Task[];
   toggleTask: (id: number) => void;
-  addTask: (title: string) => void;
+  addTask: (taskData: { title: string; startTime?: string; endTime?: string }) => void;
   removeTask: (id: number) => void;
 }
 
@@ -18,10 +20,10 @@ export const useTasks = create<TaskState>()(
   persist(
     (set) => ({
       tasks: [
-        { id: 1, title: 'Morning Exercise', completed: false },
-        { id: 2, title: 'Team Meeting', completed: true },
-        { id: 3, title: 'Health Check-up', completed: false },
-        { id: 4, title: 'Evening Walk', completed: false },
+        { id: 1, title: 'Morning Exercise', completed: false, startTime: '06:00', endTime: '07:00' },
+        { id: 2, title: 'Team Meeting', completed: true, startTime: '10:00', endTime: '11:00' },
+        { id: 3, title: 'Health Check-up', completed: false, startTime: '14:00', endTime: '15:00' },
+        { id: 4, title: 'Evening Walk', completed: false, startTime: '18:00', endTime: '18:30' },
       ],
       toggleTask: (id) =>
         set((state) => ({
@@ -29,7 +31,7 @@ export const useTasks = create<TaskState>()(
             task.id === id ? { ...task, completed: !task.completed } : task
           ),
         })),
-      addTask: (title) =>
+      addTask: ({ title, startTime, endTime }) =>
         set((state) => ({
           tasks: [
             ...state.tasks,
@@ -37,6 +39,8 @@ export const useTasks = create<TaskState>()(
               id: Math.max(0, ...state.tasks.map((t) => t.id)) + 1,
               title,
               completed: false,
+              startTime,
+              endTime,
             },
           ],
         })),
