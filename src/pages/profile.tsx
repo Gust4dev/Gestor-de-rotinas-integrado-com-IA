@@ -6,18 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { DeleteAccountDialog } from '@/components/delete-account-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { useTasks } from '@/hooks/use-tasks';
-import { toast } from 'sonner';
 import {
   User,
   Mail,
@@ -26,7 +17,6 @@ import {
   Bell,
   Lock,
   Upload,
-  Trash2,
   CheckCircle,
   AlertCircle,
   Calendar as CalendarIcon,
@@ -34,19 +24,16 @@ import {
 import { format } from 'date-fns';
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { tasks } = useTasks();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     bio: '',
     birthDate: '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
     notifications: {
       email: true,
       push: true,
@@ -54,74 +41,31 @@ export default function Profile() {
     },
   });
 
-  // Calculate statistics
   const completedTasks = tasks.filter((task) => task.completed).length;
   const pendingTasks = tasks.filter((task) => !task.completed).length;
-  const totalHoursWorked = tasks.reduce((total, task) => {
-    if (task.startTime && task.endTime) {
-      const [startHour, startMinute] = task.startTime.split(':').map(Number);
-      const [endHour, endMinute] = task.endTime.split(':').map(Number);
-      const hours = endHour - startHour + (endMinute - startMinute) / 60;
-      return total + (hours > 0 ? hours : 0);
-    }
-    return total;
-  }, 0);
 
-  const handleUpdateProfile = () => {
-    // Validate email
+  const handleUpdateProfile = async () => {
+    if (!formData.name || !formData.email) {
+      toast.error('Name and email are required');
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       toast.error('Please enter a valid email address');
       return;
     }
 
-    // Simulate API call
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-      {
-        loading: 'Updating profile...',
-        success: 'Profile updated successfully!',
-        error: 'Failed to update profile',
-      }
-    );
-    setIsEditing(false);
-  };
-
-  const handlePasswordChange = () => {
-    if (formData.newPassword !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
+    setIsUpdating(true);
+    try {
+      await updateProfile({
+        name: formData.name,
+        email: formData.email,
+      });
+      setIsEditing(false);
+    } finally {
+      setIsUpdating(false);
     }
-
-    if (formData.newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters long');
-      return;
-    }
-
-    // Simulate API call
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-      {
-        loading: 'Updating password...',
-        success: 'Password updated successfully!',
-        error: 'Failed to update password',
-      }
-    );
-    setShowPasswordDialog(false);
-  };
-
-  const handleDeleteAccount = () => {
-    // Simulate API call
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-      {
-        loading: 'Deleting account...',
-        success: 'Account deleted successfully',
-        error: 'Failed to delete account',
-      }
-    );
-    setShowDeleteDialog(false);
-    logout();
   };
 
   return (
@@ -152,7 +96,6 @@ export default function Profile() {
                   size="icon"
                   variant="outline"
                   className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
-                  onClick={() => toast.info('Photo upload coming soon!')}
                 >
                   <Upload className="h-4 w-4" />
                 </Button>
@@ -165,6 +108,7 @@ export default function Profile() {
                 variant="outline"
                 className="ml-auto"
                 onClick={() => setIsEditing(!isEditing)}
+                disabled={isUpdating}
               >
                 {isEditing ? 'Cancel' : 'Edit Profile'}
               </Button>
@@ -179,7 +123,7 @@ export default function Profile() {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  disabled={!isEditing}
+                  disabled={!isEditing || isUpdating}
                 />
               </div>
 
@@ -192,7 +136,7 @@ export default function Profile() {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  disabled={!isEditing}
+                  disabled={!isEditing || isUpdating}
                 />
               </div>
 
@@ -206,7 +150,7 @@ export default function Profile() {
                     onChange={(e) =>
                       setFormData({ ...formData, birthDate: e.target.value })
                     }
-                    disabled={!isEditing}
+                    disabled={!isEditing || isUpdating}
                   />
                   <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 </div>
@@ -221,7 +165,7 @@ export default function Profile() {
                   onChange={(e) =>
                     setFormData({ ...formData, bio: e.target.value })
                   }
-                  disabled={!isEditing}
+                  disabled={!isEditing || isUpdating}
                   className="h-24"
                 />
               </div>
@@ -236,8 +180,9 @@ export default function Profile() {
                     <Button
                       onClick={handleUpdateProfile}
                       className="w-full sm:w-auto"
+                      disabled={isUpdating}
                     >
-                      Update Profile
+                      {isUpdating ? 'Updating...' : 'Update Profile'}
                     </Button>
                   </motion.div>
                 )}
@@ -249,30 +194,38 @@ export default function Profile() {
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Statistics</h3>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="p-4 rounded-lg bg-secondary/20">
+              <div className="p-4 rounded-lg bg-secondary/10">
                 <CheckCircle className="h-5 w-5 text-primary mb-2" />
                 <div className="text-2xl font-bold">{completedTasks}</div>
                 <div className="text-sm text-muted-foreground">
                   Completed Tasks
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-secondary/20">
+              <div className="p-4 rounded-lg bg-secondary/10">
                 <AlertCircle className="h-5 w-5 text-primary mb-2" />
                 <div className="text-2xl font-bold">{pendingTasks}</div>
                 <div className="text-sm text-muted-foreground">
                   Pending Tasks
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-secondary/20">
+              <div className="p-4 rounded-lg bg-secondary/10">
                 <Clock className="h-5 w-5 text-primary mb-2" />
                 <div className="text-2xl font-bold">
-                  {Math.round(totalHoursWorked)}h
+                  {Math.round(tasks.reduce((total, task) => {
+                    if (task.startTime && task.endTime) {
+                      const [startHour, startMinute] = task.startTime.split(':').map(Number);
+                      const [endHour, endMinute] = task.endTime.split(':').map(Number);
+                      const hours = endHour - startHour + (endMinute - startMinute) / 60;
+                      return total + (hours > 0 ? hours : 0);
+                    }
+                    return total;
+                  }, 0))}h
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Total Hours Worked
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-secondary/20">
+              <div className="p-4 rounded-lg bg-secondary/10">
                 <Calendar className="h-5 w-5 text-primary mb-2" />
                 <div className="text-2xl font-bold">
                   {format(new Date(), 'd')}
@@ -280,88 +233,6 @@ export default function Profile() {
                 <div className="text-sm text-muted-foreground">
                   Active Days
                 </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Security & Notifications */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">
-              Security & Notifications
-            </h3>
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Email Notifications</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Receive email updates about your activity
-                  </div>
-                </div>
-                <Switch
-                  checked={formData.notifications.email}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      notifications: {
-                        ...formData.notifications,
-                        email: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Push Notifications</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Receive push notifications about your activity
-                  </div>
-                </div>
-                <Switch
-                  checked={formData.notifications.push}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      notifications: {
-                        ...formData.notifications,
-                        push: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Weekly Summary</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Receive a weekly summary of your activity
-                  </div>
-                </div>
-                <Switch
-                  checked={formData.notifications.weekly}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      notifications: {
-                        ...formData.notifications,
-                        weekly: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-
-              <div className="pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPasswordDialog(true)}
-                  className="w-full sm:w-auto mb-4"
-                >
-                  <Lock className="mr-2 h-4 w-4" />
-                  Change Password
-                </Button>
               </div>
             </div>
           </Card>
@@ -379,86 +250,16 @@ export default function Profile() {
               variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
               Delete Account
             </Button>
           </Card>
         </motion.div>
       </main>
 
-      {/* Change Password Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>
-              Please enter your current password and choose a new one.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                value={formData.currentPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, currentPassword: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={formData.newPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, newPassword: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, confirmPassword: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handlePasswordChange}>Update Password</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Account Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Account</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete your account? This action cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteAccount}>
-              Delete Account
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteAccountDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+      />
     </div>
   );
 }

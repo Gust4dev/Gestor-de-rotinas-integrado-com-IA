@@ -34,7 +34,7 @@ export default function Login() {
       login({
         id: '1',
         email: data.email,
-        name: 'Gusta',
+        name: 'John Doe',
       });
       navigate('/dashboard');
     } catch (error) {

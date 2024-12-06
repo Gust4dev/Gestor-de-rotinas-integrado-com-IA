@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useTasks } from '@/hooks/use-tasks';
 import { Layout, User, Settings as SettingsIcon, Info } from 'lucide-react';
@@ -10,11 +11,11 @@ import { Link } from 'react-router-dom';
 export default function Dashboard() {
   const { user } = useAuth();
   const { tasks } = useTasks();
+  const [selectedDate, setSelectedDate] = useState(new Date());
   
   const completedTasks = tasks.filter((task) => task.completed).length;
-  const upcomingEvents = 3; // Placeholder for demo
+  const upcomingEvents = 3;
   
-  // Calculate total hours worked from tasks with start and end times
   const totalHoursWorked = tasks.reduce((total, task) => {
     if (task.startTime && task.endTime) {
       const [startHour, startMinute] = task.startTime.split(':').map(Number);
@@ -32,7 +33,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Layout className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold">Dashboard</h1>
+              <h1 className="text-2xl font-bold">FOCUS</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm" asChild>
@@ -68,10 +69,10 @@ export default function Dashboard() {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <CalendarView />
+              <CalendarView onDateSelect={setSelectedDate} />
             </div>
             <div>
-              <TaskList />
+              <TaskList selectedDate={selectedDate} />
             </div>
           </div>
         </div>
